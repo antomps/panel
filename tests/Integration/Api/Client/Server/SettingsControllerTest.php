@@ -2,6 +2,7 @@
 
 namespace Pterodactyl\Tests\Integration\Api\Client\Server;
 
+use Mockery;
 use Illuminate\Http\Response;
 use Pterodactyl\Models\Server;
 use Pterodactyl\Models\Permission;
@@ -77,11 +78,11 @@ class SettingsControllerTest extends ClientApiIntegrationTestCase
         [$user, $server] = $this->generateTestAccount($permissions);
         $this->assertTrue($server->isInstalled());
 
-        $service = \Mockery::mock(DaemonServerRepository::class);
+        $service = Mockery::mock(DaemonServerRepository::class);
         $this->app->instance(DaemonServerRepository::class, $service);
 
         $service->expects('setServer')
-            ->with(\Mockery::on(function ($value) use ($server) {
+            ->with(Mockery::on(function ($value) use ($server) {
                 return $value->uuid === $server->uuid;
             }))
             ->andReturnSelf()
@@ -112,12 +113,12 @@ class SettingsControllerTest extends ClientApiIntegrationTestCase
         $this->assertTrue($server->isInstalled());
     }
 
-    public static function renamePermissionsDataProvider(): array
+    public function renamePermissionsDataProvider(): array
     {
         return [[[]], [[Permission::ACTION_SETTINGS_RENAME]]];
     }
 
-    public static function reinstallPermissionsDataProvider(): array
+    public function reinstallPermissionsDataProvider(): array
     {
         return [[[]], [[Permission::ACTION_SETTINGS_REINSTALL]]];
     }

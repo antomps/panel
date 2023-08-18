@@ -2,6 +2,7 @@
 
 namespace Pterodactyl\Tests\Integration\Api\Client\Server;
 
+use Mockery;
 use Illuminate\Http\Response;
 use Pterodactyl\Models\Permission;
 use Pterodactyl\Repositories\Wings\DaemonPowerRepository;
@@ -50,13 +51,13 @@ class PowerControllerTest extends ClientApiIntegrationTestCase
      */
     public function testActionCanBeSentToServer(string $action, string $permission)
     {
-        $service = \Mockery::mock(DaemonPowerRepository::class);
+        $service = Mockery::mock(DaemonPowerRepository::class);
         $this->app->instance(DaemonPowerRepository::class, $service);
 
         [$user, $server] = $this->generateTestAccount([$permission]);
 
         $service->expects('setServer')
-            ->with(\Mockery::on(function ($value) use ($server) {
+            ->with(Mockery::on(function ($value) use ($server) {
                 return $server->uuid === $value->uuid;
             }))
             ->andReturnSelf()
@@ -72,7 +73,7 @@ class PowerControllerTest extends ClientApiIntegrationTestCase
     /**
      * Returns invalid permission combinations for a given power action.
      */
-    public static function invalidPermissionDataProvider(): array
+    public function invalidPermissionDataProvider(): array
     {
         return [
             ['start', [Permission::ACTION_CONTROL_STOP, Permission::ACTION_CONTROL_RESTART]],
@@ -83,7 +84,7 @@ class PowerControllerTest extends ClientApiIntegrationTestCase
         ];
     }
 
-    public static function validPowerActionDataProvider(): array
+    public function validPowerActionDataProvider(): array
     {
         return [
             ['start', Permission::ACTION_CONTROL_START],

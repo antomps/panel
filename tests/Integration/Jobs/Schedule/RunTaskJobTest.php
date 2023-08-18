@@ -2,11 +2,14 @@
 
 namespace Pterodactyl\Tests\Integration\Jobs\Schedule;
 
+use Mockery;
 use Carbon\Carbon;
+use DateTimeInterface;
 use Carbon\CarbonImmutable;
 use GuzzleHttp\Psr7\Request;
 use Pterodactyl\Models\Task;
 use GuzzleHttp\Psr7\Response;
+use InvalidArgumentException;
 use Pterodactyl\Models\Server;
 use Pterodactyl\Models\Schedule;
 use Illuminate\Support\Facades\Bus;
@@ -37,7 +40,7 @@ class RunTaskJobTest extends IntegrationTestCase
 
         $job = new RunTaskJob($task);
 
-        Bus::dispatchSync($job);
+        Bus::dispatchNow($job);
 
         $task->refresh();
         $schedule->refresh();
@@ -45,7 +48,7 @@ class RunTaskJobTest extends IntegrationTestCase
         $this->assertFalse($task->is_queued);
         $this->assertFalse($schedule->is_processing);
         $this->assertFalse($schedule->is_active);
-        $this->assertTrue(CarbonImmutable::now()->isSameAs(\DateTimeInterface::ATOM, $schedule->last_run_at));
+        $this->assertTrue(CarbonImmutable::now()->isSameAs(DateTimeInterface::ATOM, $schedule->last_run_at));
     }
 
     public function testJobWithInvalidActionThrowsException()
@@ -59,9 +62,9 @@ class RunTaskJobTest extends IntegrationTestCase
 
         $job = new RunTaskJob($task);
 
-        $this->expectException(\InvalidArgumentException::class);
+        $this->expectException(InvalidArgumentException::class);
         $this->expectExceptionMessage('Invalid task action provided: foobar');
-        Bus::dispatchSync($job);
+        Bus::dispatchNow($job);
     }
 
     /**
@@ -87,22 +90,22 @@ class RunTaskJobTest extends IntegrationTestCase
             'continue_on_failure' => false,
         ]);
 
-        $mock = \Mockery::mock(DaemonPowerRepository::class);
+        $mock = Mockery::mock(DaemonPowerRepository::class);
         $this->instance(DaemonPowerRepository::class, $mock);
 
-        $mock->expects('setServer')->with(\Mockery::on(function ($value) use ($server) {
+        $mock->expects('setServer')->with(Mockery::on(function ($value) use ($server) {
             return $value instanceof Server && $value->id === $server->id;
         }))->andReturnSelf();
         $mock->expects('send')->with('start')->andReturn(new Response());
 
-        Bus::dispatchSync(new RunTaskJob($task, $isManualRun));
+        Bus::dispatchNow(new RunTaskJob($task, $isManualRun));
 
         $task->refresh();
         $schedule->refresh();
 
         $this->assertFalse($task->is_queued);
         $this->assertFalse($schedule->is_processing);
-        $this->assertTrue(CarbonImmutable::now()->isSameAs(\DateTimeInterface::ATOM, $schedule->last_run_at));
+        $this->assertTrue(CarbonImmutable::now()->isSameAs(DateTimeInterface::ATOM, $schedule->last_run_at));
     }
 
     /**
@@ -122,7 +125,7 @@ class RunTaskJobTest extends IntegrationTestCase
             'continue_on_failure' => $continueOnFailure,
         ]);
 
-        $mock = \Mockery::mock(DaemonPowerRepository::class);
+        $mock = Mockery::mock(DaemonPowerRepository::class);
         $this->instance(DaemonPowerRepository::class, $mock);
 
         $mock->expects('setServer->send')->andThrow(
@@ -133,7 +136,7 @@ class RunTaskJobTest extends IntegrationTestCase
             $this->expectException(DaemonConnectionException::class);
         }
 
-        Bus::dispatchSync(new RunTaskJob($task));
+        Bus::dispatchNow(new RunTaskJob($task));
 
         if ($continueOnFailure) {
             $task->refresh();
@@ -141,7 +144,7 @@ class RunTaskJobTest extends IntegrationTestCase
 
             $this->assertFalse($task->is_queued);
             $this->assertFalse($schedule->is_processing);
-            $this->assertTrue(CarbonImmutable::now()->isSameAs(\DateTimeInterface::ATOM, $schedule->last_run_at));
+            $this->assertTrue(CarbonImmutable::now()->isSameAs(DateTimeInterface::ATOM, $schedule->last_run_at));
         }
     }
 
@@ -165,17 +168,17 @@ class RunTaskJobTest extends IntegrationTestCase
             'payload' => 'start',
         ]);
 
-        Bus::dispatchSync(new RunTaskJob($task));
+        Bus::dispatchNow(new RunTaskJob($task));
 
         $task->refresh();
         $schedule->refresh();
 
         $this->assertFalse($task->is_queued);
         $this->assertFalse($schedule->is_processing);
-        $this->assertTrue(Carbon::now()->isSameAs(\DateTimeInterface::ATOM, $schedule->last_run_at));
+        $this->assertTrue(Carbon::now()->isSameAs(DateTimeInterface::ATOM, $schedule->last_run_at));
     }
 
-    public static function isManualRunDataProvider(): array
+    public function isManualRunDataProvider(): array
     {
         return [[true], [false]];
     }
