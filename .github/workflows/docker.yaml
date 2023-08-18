@@ -16,13 +16,14 @@ on:
 jobs:
   push:
     name: Push
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-20.04
+    if: "!contains(github.ref, 'develop') || (!contains(github.event.head_commit.message, 'skip docker') && !contains(github.event.head_commit.message, 'docker skip'))"
     steps:
       - name: Code checkout
         uses: actions/checkout@v3
 
-      - name: Fetch metadata
-        id: metadata
+      - name: Docker metadata
+        id: docker_meta
         uses: docker/metadata-action@v4
         with:
           images: ghcr.io/pterodactyl/panel
@@ -57,10 +58,10 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           context: .
-          file: ./Containerfile
+          file: ./Dockerfile
           push: ${{ github.event_name != 'pull_request' }}
           platforms: linux/amd64,linux/arm64
-          labels: ${{ steps.metadata.outputs.labels }}
-          tags: ${{ steps.metadata.outputs.tags }}
+          labels: ${{ steps.docker_meta.outputs.labels }}
+          tags: ${{ steps.docker_meta.outputs.tags }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
